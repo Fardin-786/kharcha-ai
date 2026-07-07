@@ -1,0 +1,30 @@
+name: Frontend Safety Check
+
+# 1. When should this robot wake up?
+on:
+  push:
+    branches: [ "main" ]
+
+# 2. What jobs should the robot do?
+jobs:
+  check-code:
+    # Give the robot a temporary Linux computer to work on
+    runs-on: ubuntu-latest
+
+    # 3. Step-by-step instructions for the robot
+    steps:
+      - name: Step 1 - Download our code from GitHub
+        uses: actions/checkout@v3
+
+      - name: Step 2 - Install Node.js (The Engine)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Step 3 - Go into Frontend and install tools
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Step 4 - Run ESLint to catch bugs!
+        working-directory: ./frontend
+        run: npm run lint

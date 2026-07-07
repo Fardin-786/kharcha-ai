@@ -4,7 +4,7 @@ import ExpenseChart from "./ExpenseChart";
 import { Card, CardContent } from "./components/ui/card";
 
 export default function App() {
-  const myBrokenVariable = "I am a bug!";
+ 
   // Expense List
   const [expenses, setExpenses] = useState([]);
 

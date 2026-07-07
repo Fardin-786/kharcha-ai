@@ -21,7 +21,9 @@ jobs:
         working-directory: ./frontend
         run: npm install
 
-      # 🔥 FIX: Agar local script binding break kare, toh npx runtime architecture download override forced chalayein
-      - name: Step 4 - Run ESLint via Runtime Binary
+      # 🔥 FORCED FIX: Agar optional native binding miss ho, toh linux architecture binary ko alag se runtime par force install karke execute karo
+      - name: Step 4 - Force Download Platform Binding & Run Lint
         working-directory: ./frontend
-        run: npx oxlint
+        run: |
+          npm install @oxlint/binding-linux-x64-gnu
+          npx oxlint

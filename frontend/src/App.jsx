@@ -115,32 +115,69 @@ export default function App() {
   // Receipt Scanner
   // ==========================
   const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    setIsScanning(true);
-    // Convert the image file into a digital string
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onloadend = async () => {
-      // Remove the unnecessary prefix from the string
-      const base64String = reader.result.split(",")[1];
-      // Send the image string to our backend Waiter
-      try {
-        const response = await fetch("http://localhost:8080/api/scan-receipt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: base64String }),
-        });
-        const data = await response.json();
-        alert("AI Successfully Scanned: " + data.result);
-      } catch (error) {
-        alert("Failed to scan receipt.");
-      } finally {
-        setIsScanning(false);
-      }
-    };
-  };
+  const file = event.target.files[0];
+  if (!file) return;
+  setIsScanning(true);
 
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onloadend = async () => {
+    const base64String = reader.result.split(',')[1];
+    try {
+      // 1. Image scan ke liye backend par bheja
+      const response = await fetch('http://localhost:8080/api/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64String })
+      });
+      
+      const data = await response.json();
+      console.log("Scanned Data:", data.result);
+
+      // Gemini ke response string ko JSON object mein parse karein
+      let cleanData = {};
+      if (typeof data.result === 'string') {
+        const cleanJsonString = data.result.replace(/```json/g, "").replace(/```/g, "").trim();
+        cleanData = JSON.parse(cleanJsonString);
+      } else {
+        cleanData = data.result;
+      }
+
+      // Merchant ko category ki tarah ya fir title ki tarah map karein
+      // Agar merchant name hai toh use capital format mein extract karein
+      const finalCategory = cleanData.merchant || cleanData.category || "Receipt Scan";
+      const finalAmount = Number(cleanData.amount || 0);
+
+      if (finalAmount <= 0) {
+        alert("AI could not extract a valid amount from the receipt.");
+        return;
+      }
+
+      // 🔥 AUTO-SAVE TO DB: Ab extracted data ko direct database endpoint par POST karein
+      const saveResponse = await fetch("http://localhost:8080/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: finalAmount,
+          category: finalCategory
+        })
+      });
+
+      if (saveResponse.ok) {
+        alert(`Success! Saved ₹${finalAmount} for ${finalCategory}`);
+        loadExpenses(); // 🎉 Niche automatic card lane ke liye state refresh!
+      } else {
+        alert("Receipt scan toh ho gaya, par database mein save nahi ho paya.");
+      }
+
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong during image scan!");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+};
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
       {/* Title */}

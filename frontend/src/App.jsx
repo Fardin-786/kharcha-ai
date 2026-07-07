@@ -133,17 +133,26 @@ export default function App() {
   reader.onloadend = async () => {
     const base64String = reader.result.split(',')[1];
     try {
-      // 1. Image scan ke liye backend par bheja
       const response = await fetch('https://kharcha-backend-ai.onrender.com/api/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64String })
       });
       
+      // 🔥 SAFETY LOCK 1: Agar backend fail ho (500/429 error), toh yahi se roko
+      if (!response.ok) {
+        throw new Error("Backend server failed or Gemini limit exceeded.");
+      }
+      
       const data = await response.json();
+      
+      // 🔥 SAFETY LOCK 2: Check karo ki data aur data.result sahi mein exist karte hain
+      if (!data || !data.result) {
+        throw new Error("Invalid response from AI model.");
+      }
+
       console.log("Scanned Data:", data.result);
 
-      // Gemini ke response string ko JSON object mein parse karein
       let cleanData = {};
       if (typeof data.result === 'string') {
         const cleanJsonString = data.result.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -152,17 +161,15 @@ export default function App() {
         cleanData = data.result;
       }
 
-      // Merchant ko category ki tarah ya fir title ki tarah map karein
-      // Agar merchant name hai toh use capital format mein extract karein
-      const finalCategory = cleanData.merchant || cleanData.category || "Receipt Scan";
-      const finalAmount = Number(cleanData.amount || 0);
+      // 🔥 SAFETY LOCK 3: Fallback rules agar properties gayab hon
+      const finalCategory = cleanData?.merchant || cleanData?.category || "Receipt Scan";
+      const finalAmount = Number(cleanData?.amount || 0);
 
       if (finalAmount <= 0) {
-        alert("AI could not extract a valid amount from the receipt.");
+        alert("AI could not extract a valid amount.");
         return;
       }
 
-      // 🔥 AUTO-SAVE TO DB: Ab extracted data ko direct database endpoint par POST karein
       const saveResponse = await fetch("https://kharcha-backend-ai.onrender.com/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -174,14 +181,14 @@ export default function App() {
 
       if (saveResponse.ok) {
         alert(`Success! Saved ₹${finalAmount} for ${finalCategory}`);
-        loadExpenses(); // 🎉 Niche automatic card lane ke liye state refresh!
+        if (typeof loadExpenses === 'function') loadExpenses(); 
       } else {
-        alert("Receipt scan toh ho gaya, par database mein save nahi ho paya.");
+        alert("Receipt toh read ho gayi, par database mein save nahi ho paya.");
       }
 
     } catch (error) {
-      console.error(error);
-      alert("Something went wrong during image scan!");
+      console.error("Frontend Scan Error:", error);
+      alert("Google Gemini API ki limit temporary khatam ho gayi hai. Please thodi der baad try karein!");
     } finally {
       setIsScanning(false);
     }

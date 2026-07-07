@@ -20,7 +20,7 @@ export default function App() {
   // ==========================
   const loadExpenses = async () => {
     try {
-      const response = await fetch("http://localhost:8080/api/expenses");
+      const response = await fetch("https://kharcha-backend-ai.onrender.com/api/expenses");
       const realData = await response.json();
       setExpenses(realData);
     } catch (error) {
@@ -63,7 +63,7 @@ export default function App() {
 
       try {
         // Send voice text to Gemini
-        const aiResponse = await fetch("http://localhost:8080/api/analyze", {
+        const aiResponse = await fetch("https://kharcha-backend-ai.onrender.com/api/analyze", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -84,7 +84,7 @@ export default function App() {
         const extractedExpense = JSON.parse(cleanJsonString);
 
         // Save to backend
-        await fetch("http://localhost:8080/api/expenses", {
+        await fetch("https://kharcha-backend-ai.onrender.com/api/expenses", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -126,7 +126,7 @@ export default function App() {
     const base64String = reader.result.split(',')[1];
     try {
       // 1. Image scan ke liye backend par bheja
-      const response = await fetch('http://localhost:8080/api/scan-receipt', {
+      const response = await fetch('https://kharcha-backend-ai.onrender.com/api/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64String })
@@ -155,7 +155,7 @@ export default function App() {
       }
 
       // 🔥 AUTO-SAVE TO DB: Ab extracted data ko direct database endpoint par POST karein
-      const saveResponse = await fetch("http://localhost:8080/api/expenses", {
+      const saveResponse = await fetch("https://kharcha-backend-ai.onrender.com/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
